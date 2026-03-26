@@ -245,9 +245,63 @@ def detailed_4features_analysis(skin, hair, eyes, brows):
     return {'michelson': michelson_contrast, 'contrast_type': contrast_type, 'color_type': color_type}
 
 
+def create_smart_colored_visualization(original, mask_segments, skin, hair, eyes, brows):
+    """ЧБ + САМЫЙ ЯРКИЙ цвет Кожи + остальные"""
+
+    # 1. ЧБ фон (RGB)
+    gray = cv2.cvtColor(original, cv2.COLOR_RGB2GRAY)
+    gray_rgb = cv2.cvtColor(gray, cv2.COLOR_GRAY2RGB)
+    smart_visual = gray_rgb.copy()
+
+    # 2. Выбираем САМЫЙ ЯРКИЙ кожный сегмент (по L*)
+    best_skin = None
+    if skin:
+        best_skin = max(skin, key=lambda x: x['L'])  # Самый яркий!
+        print(f"🧡 САМЫЙ ЯРКИЙ КОЖА: кластер {best_skin['cls']} L*={best_skin['L']:.1f}")
+
+    # 3. Порядок с лучшей кожей
+    features = []
+    if eyes: features.append(('Eyes', eyes[0]))
+    if brows and brows: features.append(('Brows', brows[0]))
+    if hair and hair: features.append(('Hair', hair[0]))
+    if best_skin: features.append(('Skin', best_skin))  # ЛУЧШИЙ!
+
+    print("РАСКРАШИВАЕМ:", [f[0] for f in features])
+
+    # 4. Раскрашиваем
+    for name, seg in features:
+        cls_id = int(seg['cls'])
+        seg_mask = (mask_segments == cls_id)
+        seg_pixels = original[seg_mask]
+
+        if len(seg_pixels) > 0:
+            avg_rgb = np.mean(seg_pixels, axis=0).astype(np.uint8)
+            smart_visual[seg_mask] = avg_rgb
+            print(f"{name} (кластер {cls_id}): RGB{avg_rgb}")
+
+    # 5. Легенда
+    legend = np.ones((200, 350, 3), np.uint8) * 255
+    y = 40
+    for name, seg in features:
+        cls_id = int(seg['cls'])
+        seg_mask = (mask_segments == cls_id)
+        seg_pixels = original[seg_mask]
+        if len(seg_pixels) > 0:
+            avg_rgb = np.mean(seg_pixels, axis=0).astype(np.uint8)
+            legend[y - 30:y + 5, 30:80] = avg_rgb
+            cv2.putText(legend, name, (100, y), cv2.FONT_HERSHEY_PLAIN, 1.2, (0, 0, 0), 2)
+            y += 45
+
+    # 6. Сохранение
+    cv2.imwrite("smart_analysis_visual.png", cv2.cvtColor(smart_visual, cv2.COLOR_RGB2BGR))
+    cv2.imwrite("smart_legend.png", cv2.cvtColor(legend, cv2.COLOR_RGB2BGR))
+
+    print("✅ 🧡 САМЫЙ ЯРКИЙ цвет кожи!")
+
+
 # ЗАПУСК
 if __name__ == "__main__":
-    print("LCh ТЕПЛОТА + MICHELSON КОНТРАСТ")
+    print("LCh ТЕПЛОТА + MICHELSON КОНТРАСТ + ЧБ ВИЗУАЛИЗАЦИЯ")
     print("=" * 80)
 
     color_analyzer = ColorAnalyzer()
@@ -257,5 +311,8 @@ if __name__ == "__main__":
     skin, hair, eyes, brows = classify_features_universal(original, mask, color_analyzer)
     result = detailed_4features_analysis(skin, hair, eyes, brows)
 
+    # ✅ НОВАЯ SMART ВИЗУАЛИЗАЦИЯ
+    create_smart_colored_visualization(original, mask, skin, hair, eyes, brows)
+
     cv2.imwrite("lch_michelson_analysis.png", mask * 15)
-    print("\nlch_michelson_analysis.png — ГОТОВ!")
+    print("\nВСЕ ФАЙЛЫ ГОТОВЫ!")
