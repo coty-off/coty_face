@@ -1,5 +1,5 @@
 """
-НАУЧНЫЙ АНАЛИЗ: CIE LCh ТЕПЛОТА + MICHELSON КОНТРАСТ
+НАУЧНЫЙ АНАЛИЗ: CIE LCh ТЕПЛОТА + MICHELSON КОНТРАСТ + ПЕРСОНАЛЬНАЯ ПАЛИТРА
 """
 
 import numpy as np
@@ -46,6 +46,97 @@ class ColorAnalyzer:
         }
 
 
+# ---------- НОВОЕ: генерация персональной палитры ----------
+
+def map_l_to_brightness(L):
+    """Перевод средней L* пользователя в категорию яркости."""
+    if L >= 70:
+        return "СВЕТЛЫЙ"
+    elif L <= 40:
+        return "ТЁМНЫЙ"
+    else:
+        return "СРЕДНИЙ"
+
+
+def map_chroma_to_saturation(chroma):
+    """Перевод средней chroma пользователя в категорию насыщенности."""
+    if chroma >= 45:
+        return "ВЫСОКАЯ"
+    elif chroma <= 25:
+        return "НИЗКАЯ"
+    else:
+        return "СРЕДНЯЯ"
+
+
+def generate_personal_palette(color_type, avg_L, avg_chroma):
+    """
+    Генерация палитры по трём критериям:
+    - ТЕПЛЫЙ / ХОЛОДНЫЙ (color_type),
+    - яркость (по средней L*),
+    - насыщенность (по средней chroma).
+    """
+    brightness = map_l_to_brightness(avg_L)
+    saturation = map_chroma_to_saturation(avg_chroma)
+
+    print(f"\nПАЛИТРА: {color_type}, {brightness}, {saturation}")
+
+    # Базовые оттенки цветового круга (как на референсной картинке)
+    base_hues = {
+        'Красный': 0,
+        'Оранжевый': 30,
+        'Жёлтый': 60,
+        'Зелёный': 120,
+        'Бирюзовый': 170,
+        'Синий': 230,
+        'Фиолетовый': 280,
+        'Розовый': 320,
+        'Коричневый': 25,
+    }
+
+    lightness_values = {
+        'СВЕТЛЫЙ': 80,
+        'СРЕДНИЙ': 55,
+        'ТЁМНЫЙ': 35,
+    }
+    chroma_values = {
+        'ВЫСОКАЯ': 80,
+        'СРЕДНЯЯ': 55,
+        'НИЗКАЯ': 30,
+    }
+
+    L = lightness_values[brightness]
+    C = chroma_values[saturation]
+
+    # Тепло/холодный сдвиг по тону
+    hue_shift = -10 if color_type == "ТЕПЛЫЙ" else 10
+
+    palette = []
+    for name, base_h in base_hues.items():
+        h = (base_h + hue_shift) % 360
+        a = C * np.cos(np.radians(h))
+        b = C * np.sin(np.radians(h))
+        lab = np.array([[[L, a, b]]], dtype=np.float32)
+
+        # skimage работает в Lab, OpenCV ожидает Lab в [0..255] — поэтому перевод через rgb2lab выше.
+        # Здесь используем тот же приём: нормализуем обратно к [0..1] и обрезаем.
+        # Для простоты — воспользуемся rgb2lab в обратную сторону через cv2.
+        rgb = cv2.cvtColor(lab, cv2.COLOR_Lab2RGB)[0][0]
+        rgb = np.clip(rgb * 255, 0, 255).astype(np.uint8)
+        hex_color = f"#{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}"
+
+        palette.append({
+            "name": name,
+            "hex": hex_color,
+            "L": round(L, 1),
+            "chroma": round(C, 1),
+            "hue_deg": round(h, 1),
+        })
+
+    return palette, brightness, saturation
+
+
+# ---------- СТАРЫЕ ФУНКЦИИ АНАЛИЗА ----------
+
 def smart_align_images(original_path, mask_path):
     original = np.array(Image.open(original_path))
     colored_mask = cv2.imread(mask_path)
@@ -68,7 +159,8 @@ def diagnose_all_segments(original, mask_segments, color_analyzer):
 
     segment_list = []
     for cls in np.unique(mask_segments):
-        if cls == 0: continue
+        if cls == 0:
+            continue
         seg_mask = (mask_segments == cls)
         seg_pixels = original[seg_mask]
         if len(seg_pixels) > 200:
@@ -111,7 +203,8 @@ def classify_features_universal(original, mask_segments, color_analyzer):
 
     eye_cls = eye_data['cls'] if eye_data else -1
     for cls in np.unique(mask_segments):
-        if cls == 0 or cls == eye_cls: continue
+        if cls == 0 or cls == eye_cls:
+            continue
         seg_mask = (mask_segments == cls)
         seg_pixels = original[seg_mask]
 
@@ -120,7 +213,8 @@ def classify_features_universal(original, mask_segments, color_analyzer):
             lab_vals = rgb2lab(rgb_norm.reshape(-1, 1, 1, 3)).squeeze()
             mean_lab = np.nanmean(lab_vals, axis=0)
 
-            if mean_lab[0] < 25: continue
+            if mean_lab[0] < 25:
+                continue
 
             r, g, b = np.mean(seg_pixels, axis=0).astype(np.uint8)
             pct = len(seg_pixels) / np.prod(original.shape[:2]) * 100
@@ -242,7 +336,18 @@ def detailed_4features_analysis(skin, hair, eyes, brows):
         print(f"   {seg['name']}: {seg['color_analysis']['hex']}")
 
     print("=" * 90)
-    return {'michelson': michelson_contrast, 'contrast_type': contrast_type, 'color_type': color_type}
+
+    # средние L* и chroma для расчёта палитры
+    avg_L = np.mean([seg['L'] for seg in all_segments])
+    avg_chroma = np.mean([seg['color_analysis']['chroma'] for seg in all_segments])
+
+    return {
+        'michelson': michelson_contrast,
+        'contrast_type': contrast_type,
+        'color_type': color_type,
+        'avg_L': avg_L,
+        'avg_chroma': avg_chroma
+    }
 
 
 def create_smart_colored_visualization(original, mask_segments, skin, hair, eyes, brows):
@@ -261,10 +366,14 @@ def create_smart_colored_visualization(original, mask_segments, skin, hair, eyes
 
     # 3. Порядок с лучшей кожей
     features = []
-    if eyes: features.append(('Eyes', eyes[0]))
-    if brows and brows: features.append(('Brows', brows[0]))
-    if hair and hair: features.append(('Hair', hair[0]))
-    if best_skin: features.append(('Skin', best_skin))  # ЛУЧШИЙ!
+    if eyes:
+        features.append(('Eyes', eyes[0]))
+    if brows and brows:
+        features.append(('Brows', brows[0]))
+    if hair and hair:
+        features.append(('Hair', hair[0]))
+    if best_skin:
+        features.append(('Skin', best_skin))  # ЛУЧШИЙ!
 
     print("РАСКРАШИВАЕМ:", [f[0] for f in features])
 
@@ -296,12 +405,57 @@ def create_smart_colored_visualization(original, mask_segments, skin, hair, eyes
     cv2.imwrite("smart_analysis_visual.png", cv2.cvtColor(smart_visual, cv2.COLOR_RGB2BGR))
     cv2.imwrite("smart_legend.png", cv2.cvtColor(legend, cv2.COLOR_RGB2BGR))
 
-    print("✅ 🧡 САМЫЙ ЯРКИЙ цвет кожи!")
+    print(" САМЫЙ ЯРКИЙ цвет кожи!")
 
 
-# ЗАПУСК
+# ---------- НОВОЕ: HTML с палитрой ----------
+
+def generate_html_palette_report(html_path, palette, result, brightness_cat, saturation_cat):
+    html_blocks = []
+    for c in palette:
+        html_blocks.append(
+            f'<div class="color-block" style="background:{c["hex"]};">'
+            f'<span>{c["name"]}<br>{c["hex"]}</span></div>'
+        )
+
+    html = f"""
+    <!DOCTYPE html>
+    <html><head><meta charset="utf-8">
+    <title>Персональная цветовая палитра</title>
+    <style>
+        body {{ font-family:Arial, sans-serif; background:#f8f8f8; margin:20px; }}
+        h1 {{ border-bottom:2px solid #ccc; padding-bottom:5px; }}
+        .color-block {{
+            width:130px; height:90px; display:inline-block; margin:5px;
+            border:1px solid #000; color:#000; text-align:center;
+            vertical-align:top; line-height:1.2; font-size:12px; padding:3px;
+        }}
+        .color-block span {{
+            display:block; margin-top:5px; background:rgba(255,255,255,0.7);
+        }}
+    </style>
+    </head>
+    <body>
+      <h1>Персональная цветовая палитра</h1>
+      <p><b>Цветотип:</b> {result['color_type']}<br>
+         <b>Контрастность:</b> {result['contrast_type']}<br>
+         <b>Средняя L*:</b> {result['avg_L']:.1f}<br>
+         <b>Средняя chroma:</b> {result['avg_chroma']:.1f}<br>
+         <b>Категории палитры:</b> {result['color_type']} / {brightness_cat} / {saturation_cat}
+      </p>
+      {''.join(html_blocks)}
+    </body></html>
+    """
+
+    with open(html_path, "w", encoding="utf-8") as f:
+        f.write(html)
+    print(f"✅ HTML‑палитра сохранена: {html_path}")
+
+
+# ---------- ЗАПУСК ----------
+
 if __name__ == "__main__":
-    print("LCh ТЕПЛОТА + MICHELSON КОНТРАСТ + ЧБ ВИЗУАЛИЗАЦИЯ")
+    print("LCh ТЕПЛОТА + MICHELSON КОНТРАСТ + ЧБ ВИЗУАЛИЗАЦИЯ + ПАЛИТРА")
     print("=" * 80)
 
     color_analyzer = ColorAnalyzer()
@@ -311,8 +465,24 @@ if __name__ == "__main__":
     skin, hair, eyes, brows = classify_features_universal(original, mask, color_analyzer)
     result = detailed_4features_analysis(skin, hair, eyes, brows)
 
-    # ✅ НОВАЯ SMART ВИЗУАЛИЗАЦИЯ
+    # SMART ВИЗУАЛИЗАЦИЯ
     create_smart_colored_visualization(original, mask, skin, hair, eyes, brows)
-
     cv2.imwrite("lch_michelson_analysis.png", mask * 15)
+
+    # ПЕРСОНАЛЬНАЯ ПАЛИТРА
+    palette, brightness_cat, saturation_cat = generate_personal_palette(
+        color_type=result['color_type'],
+        avg_L=result['avg_L'],
+        avg_chroma=result['avg_chroma']
+    )
+
+    # HTML‑отчёт с палитрой
+    generate_html_palette_report(
+        "personal_palette.html",
+        palette,
+        result,
+        brightness_cat,
+        saturation_cat
+    )
+
     print("\nВСЕ ФАЙЛЫ ГОТОВЫ!")
