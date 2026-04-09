@@ -1,94 +1,60 @@
-version: '3.8'
-
 services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
   web:
     build: .
     ports:
       - "8000:8000"
     volumes:
-      - ./api:/app/api
-      - ./project:/app/project
-      - ./coty:/app/coty
-      - ./uploads:/uploads    # ← bind-mount к ./uploads
+      - ./uploads:/uploads
+      - ./photos:/photos
     depends_on:
-      redis:
-        condition: service_started
-      postgres:
-        condition: service_started
+      - redis
     environment:
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/1
+      PYTHONPATH: /app:/app/project:/app/coty
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
 
   worker-segment:
     build: .
-    command: celery -A api.celery_app worker --loglevel=info -Q segment
+    command: celery -A api.celery_app worker --loglevel=info -Q segment -c 1
     volumes:
-      - ./api:/app/api
-      - ./project:/app/project
-      - ./uploads:/uploads    # ← та же host‑папка
+      - ./uploads:/uploads
+      - ./photos:/photos
     depends_on:
-      redis:
-        condition: service_started
+      - redis
     environment:
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/1
+      PYTHONPATH: /app:/app/project:/app/coty
 
   worker-colors:
     build: .
-    command: celery -A api.celery_app worker --loglevel=info -Q colors
+    command: celery -A api.celery_app worker --loglevel=info -Q colors -c 1
     volumes:
-      - ./api:/app/api
-      - ./coty:/app/coty
+      - ./uploads:/uploads
+      - ./photos:/photos
     depends_on:
-      redis:
-        condition: service_started
+      - redis
     environment:
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/1
+      PYTHONPATH: /app:/app/project:/app/coty
 
   flower:
     build: .
     command: celery -A api.celery_app flower --port=5555
     ports:
       - "5555:5555"
-    volumes:
-      - ./api:/app/api
     depends_on:
-      redis:
-        condition: service_started
-      worker-segment:
-        condition: service_started
-      worker-colors:
-        condition: service_started
+      - redis
     environment:
       CELERY_BROKER_URL: redis://redis:6379/0
 
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: diplom
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: pass
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user -d diplom"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
 volumes:
-
-  pgdata:
+  photos:
+  uploads:

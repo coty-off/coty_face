@@ -1,7 +1,8 @@
 """
-НАУЧНЫЙ АНАЛИЗ: CIE LCh ТЕПЛОТА + MICHELSON КОНТРАСТ + ПЕРСОНАЛЬНАЯ ПАЛИТРА (ОТТЕНКИ В ГРАНИЦАХ)
+НАУЧНЫЙ АНАЛИЗ: CIE LCh ТЕПЛОТА + MICHELSON КОНТРАСТ + ПЕРСОНАЛЬНАЯ ПАЛИТРА
 """
-
+import argparse
+import os
 import numpy as np
 import cv2
 from PIL import Image
@@ -25,7 +26,6 @@ class ColorAnalyzer:
         chroma = np.sqrt(a_star ** 2 + b_star ** 2)
         hue_deg = np.degrees(np.arctan2(b_star, a_star)) % 360
 
-        # ПРАВИЛЬНЫЕ ДИАПАЗОНЫ ПО ЦВЕТОТИПАМ
         if feature_type == 'skin':  # КОЖА
             is_warm = (0 <= hue_deg <= 60) or (300 <= hue_deg <= 360)
         elif feature_type in ['hair', 'brows']:  # ВОЛОСЫ/БРОВИ
@@ -47,9 +47,7 @@ class ColorAnalyzer:
 
 
 # ---------- УЛУЧШЕННЫЕ ФУНКЦИИ ПАЛИТРЫ ----------
-
 def map_chroma_to_saturation(avg_chroma):
-    """Средняя chroma → категория насыщенности + значение C."""
     if avg_chroma >= 45:
         return "ВЫСОКАЯ", 80.0
     elif avg_chroma <= 25:
@@ -59,52 +57,29 @@ def map_chroma_to_saturation(avg_chroma):
 
 
 def make_raw_L_levels(michelson, steps=5):
-    """1. ТЕОРЕТИЧЕСКАЯ лесенка L* по контрастности."""
-    if michelson < 0.30:  # Низкая → светлые
+    if michelson < 0.30:
         base_top, base_bottom = 85, 55
-    elif michelson < 0.50:  # Средняя
+    elif michelson < 0.50:
         base_top, base_bottom = 80, 40
-    else:  # Высокая → тёмные
+    else:
         base_top, base_bottom = 70, 25
-
     return list(np.linspace(base_top, base_bottom, steps))
 
 
 def clamp_L_levels_to_user(raw_levels, L_min_user, L_max_user):
-    """
-    2. НОРМАЛИЗАЦИЯ лесенки в границы пользователя:
-    - не темнее L_min_user
-    - не светлее L_max_user
-    - растягиваем/сжимаем внутри диапазона
-    """
-    # Обрезаем по границам пользователя
     raw_clamped = [min(max(L, L_min_user), L_max_user) for L in raw_levels]
-
-    # Если диапазон сжался до точки — возвращаем её
     L_top_user = max(raw_clamped)
     L_bottom_user = min(raw_clamped)
 
     if L_top_user <= L_bottom_user:
         return [L_top_user]
 
-    # Растягиваем обратно на нужное количество шагов
     return list(np.linspace(L_top_user, L_bottom_user, len(raw_levels)))
 
 
 def generate_personal_palette(color_type, michelson, avg_chroma, L_min_user, L_max_user):
-    """
-    ✅ ПЕРСОНАЛЬНАЯ ПАЛИТРА ПО 4 КРИТЕРИЯМ:
-    1. Теплота → сдвиг hue
-    2. Насыщенность → C
-    3. Контраст → теоретическая лесенка L*
-    4. Границы пользователя → нормализованная лесенка L*_user
-    """
     saturation_cat, C = map_chroma_to_saturation(avg_chroma)
-
-    # 1. Теоретическая лесенка по контрасту
     raw_L_levels = make_raw_L_levels(michelson)
-
-    # 2. Нормализация в границы пользователя
     L_levels_user = clamp_L_levels_to_user(raw_L_levels, L_min_user, L_max_user)
 
     print(f"\n🎨 АНАЛИЗ ПАЛИТРЫ:")
@@ -113,10 +88,8 @@ def generate_personal_palette(color_type, michelson, avg_chroma, L_min_user, L_m
     print(f"   L* raw: {raw_L_levels}")
     print(f"   L* user: {L_levels_user} ← В ГРАНИЦАХ [{L_min_user:.1f}-{L_max_user:.1f}]")
 
-    # Тепло/холодный сдвиг
     hue_shift = -15 if color_type == "ТЕПЛЫЙ" else 15
 
-    # Базовые цвета
     base_hues = {
         'Красный': 0, 'Оранжевый': 30, 'Жёлтый': 60, 'Зелёный': 120,
         'Бирюзовый': 170, 'Синий': 230, 'Фиолетовый': 280, 'Розовый': 320, 'Коричневый': 25
@@ -128,7 +101,6 @@ def generate_personal_palette(color_type, michelson, avg_chroma, L_min_user, L_m
         for i, L in enumerate(L_levels_user):
             a = C * np.cos(np.radians(h))
             b = C * np.sin(np.radians(h))
-
             lab = np.array([[[L, a, b]]], dtype=np.float32)
             rgb = cv2.cvtColor(lab, cv2.COLOR_Lab2RGB)[0][0]
             rgb = np.clip(rgb * 255, 0, 255).astype(np.uint8)
@@ -148,8 +120,7 @@ def generate_personal_palette(color_type, michelson, avg_chroma, L_min_user, L_m
     return palette, L_levels_user
 
 
-# ---------- [ВСЕ ОСТАЛЬНЫЕ ФУНКЦИИ БЕЗ ИЗМЕНЕНИЙ] ----------
-
+# ---------- ОСНОВНЫЕ ФУНКЦИИ АНАЛИЗА ----------
 def smart_align_images(original_path, mask_path):
     original = np.array(Image.open(original_path))
     colored_mask = cv2.imread(mask_path)
@@ -268,7 +239,6 @@ def find_true_iris_universal(original, mask_segments, color_analyzer):
 
 
 def detailed_4features_analysis(skin, hair, eyes, brows):
-    """LCh ТЕПЛОТА + MICHELSON КОНТРАСТ"""
     print("\n" + "=" * 90)
     print("НАУЧНЫЙ АНАЛИЗ: CIE LCh + MICHELSON (4 ЭЛЕМЕНТА)")
     print("=" * 90)
@@ -301,7 +271,6 @@ def detailed_4features_analysis(skin, hair, eyes, brows):
               f"{seg['L']:4.1f} | {seg['color_analysis']['temperature']:8} | "
               f"{seg['color_analysis']['hue_deg']:4}° | {seg['pct']:4.1f}%")
 
-    # MICHELSON CONTRAST + ГРАНИЦЫ L*
     L_values = [seg['L'] for seg in all_segments]
     L_max = max(L_values)
     L_min = min(L_values)
@@ -312,35 +281,35 @@ def detailed_4features_analysis(skin, hair, eyes, brows):
     print(f"{contrast_type} контрастность")
     print(f"ГРАНИЦЫ L*: {L_min:.1f} (темный) — {L_max:.1f} (светлый)")
 
-    # ЦВЕТОТИП
     warm_count = sum(1 for seg in all_segments if 'ТЕПЛЫЙ' in seg['color_analysis']['temperature'])
     color_type = "ТЕПЛЫЙ" if warm_count > len(all_segments) / 2 else "ХОЛОДНЫЙ"
 
     print(f"\nЦВЕТОТИП: {color_type} ({warm_count}/{len(all_segments)} элементов)")
+    print("=" * 90)
 
     avg_L = np.mean(L_values)
     avg_chroma = np.mean([seg['color_analysis']['chroma'] for seg in all_segments])
 
-    print("=" * 90)
     return {
         'michelson': michelson_contrast,
         'contrast_type': contrast_type,
         'color_type': color_type,
         'avg_L': avg_L,
         'avg_chroma': avg_chroma,
-        'L_min_user': L_min,  # ✅ САМЫЙ ТЁМНЫЙ
-        'L_max_user': L_max   # ✅ САМЫЙ СВЕТЛЫЙ
+        'L_min_user': L_min,
+        'L_max_user': L_max
     }
 
 
-def create_smart_colored_visualization(original, mask_segments, skin, hair, eyes, brows):
+def create_smart_colored_visualization(original, mask_segments, skin, hair, eyes, brows, output_dir, base_name):
+    """Создаёт визуализацию и легенду + сохраняет в указанную папку"""
     gray = cv2.cvtColor(original, cv2.COLOR_RGB2GRAY)
     gray_rgb = cv2.cvtColor(gray, cv2.COLOR_GRAY2RGB)
     smart_visual = gray_rgb.copy()
 
     best_skin = max(skin, key=lambda x: x['L']) if skin else None
     if best_skin:
-        print(f"🧡 САМЫЙ ЯРКИЙ КОЖА: кластер {best_skin['cls']} L*={best_skin['L']:.1f}")
+        print(f"🧡 САМЫЙ ЯРКИЙ КОЖА: кластер {best_skin.get('cls', 'N/A')} L*={best_skin['L']:.1f}")
 
     features = []
     if eyes: features.append(('Eyes', eyes[0]))
@@ -356,6 +325,7 @@ def create_smart_colored_visualization(original, mask_segments, skin, hair, eyes
             avg_rgb = np.mean(seg_pixels, axis=0).astype(np.uint8)
             smart_visual[seg_mask] = avg_rgb
 
+    # Легенда
     legend = np.ones((200, 350, 3), np.uint8) * 255
     y = 40
     for name, seg in features:
@@ -368,9 +338,16 @@ def create_smart_colored_visualization(original, mask_segments, skin, hair, eyes
             cv2.putText(legend, name, (100, y), cv2.FONT_HERSHEY_PLAIN, 1.2, (0, 0, 0), 2)
             y += 45
 
-    cv2.imwrite("smart_analysis_visual.png", cv2.cvtColor(smart_visual, cv2.COLOR_RGB2BGR))
-    cv2.imwrite("smart_legend.png", cv2.cvtColor(legend, cv2.COLOR_RGB2BGR))
-    print("✅ 🧡 ВИЗУАЛИЗАЦИЯ ГОТОВА!")
+    # Сохранение в нужную папку
+    visual_path = os.path.join(output_dir, f"{base_name}_smart_analysis_visual.png")
+    legend_path = os.path.join(output_dir, f"{base_name}_smart_legend.png")
+
+    cv2.imwrite(visual_path, cv2.cvtColor(smart_visual, cv2.COLOR_RGB2BGR))
+    cv2.imwrite(legend_path, cv2.cvtColor(legend, cv2.COLOR_RGB2BGR))
+
+    print(f"✅ ВИЗУАЛИЗАЦИЯ ГОТОВА!")
+    print(f"   → {visual_path}")
+    print(f"   → {legend_path}")
 
 
 def generate_html_palette_report(html_path, palette, result, L_levels_user):
@@ -432,30 +409,45 @@ def generate_html_palette_report(html_path, palette, result, L_levels_user):
 
 
 # ---------- ЗАПУСК ----------
+def main():
+    parser = argparse.ArgumentParser(description="Color Analysis Processor")
+    parser.add_argument("--original", "-o", required=True, help="Original image path")
+    parser.add_argument("--mask", "-m", required=True, help="Mask image path")
+    parser.add_argument("--output_dir", "-d", required=True, help="Output directory")
+    args = parser.parse_args()
 
-if __name__ == "__main__":
-    print("✅ CIE LCh + MICHELSON + ПАЛИТРА (L* В ГРАНИЦАХ ПОЛЬЗОВАТЕЛЯ)")
-    print("=" * 80)
+    print(f"[COTY] Processing original: {args.original}")
+    print(f"[COTY] Mask: {args.mask}")
+    os.makedirs(args.output_dir, exist_ok=True)
 
+    # Основной анализ
+    original_pil, mask_segments, centers = smart_align_images(args.original, args.mask)
     color_analyzer = ColorAnalyzer()
-    original, mask, centers = smart_align_images("whomen.jpg", "whomen-1.jpg")
 
-    diagnose_all_segments(original, mask, color_analyzer)
-    skin, hair, eyes, brows = classify_features_universal(original, mask, color_analyzer)
+    diagnose_all_segments(original_pil, mask_segments, color_analyzer)
+    skin, hair, eyes, brows = classify_features_universal(original_pil, mask_segments, color_analyzer)
     result = detailed_4features_analysis(skin, hair, eyes, brows)
 
-    create_smart_colored_visualization(original, mask, skin, hair, eyes, brows)
-    cv2.imwrite("lch_michelson_analysis.png", mask * 15)
+    base_name = os.path.splitext(os.path.basename(args.original))[0]
 
-    # ✅ ПЕРСОНАЛЬНАЯ ПАЛИТРА С НОРМАЛИЗАЦИЕЙ L*
-    palette, L_levels_user = generate_personal_palette(
-        color_type=result['color_type'],
-        michelson=result['michelson'],
-        avg_chroma=result['avg_chroma'],
-        L_min_user=result['L_min_user'],
-        L_max_user=result['L_max_user']
+    # Визуализация + легенда
+    create_smart_colored_visualization(
+        original_pil, mask_segments, skin, hair, eyes, brows,
+        output_dir=args.output_dir,
+        base_name=base_name
     )
 
-    generate_html_palette_report("personal_palette_user_bounds.html", palette, result, L_levels_user)
+    # Генерация палитры
+    palette, L_levels_user = generate_personal_palette(
+        result['color_type'], result['michelson'], result['avg_chroma'],
+        result['L_min_user'], result['L_max_user']
+    )
 
-    print("\n🎉 ГОТОВО! Проверьте personal_palette_user_bounds.html")
+    html_path = os.path.join(args.output_dir, f"{base_name}_personal_palette.html")
+    generate_html_palette_report(html_path, palette, result, L_levels_user)
+
+    print(f"[COTY] ✅ Complete! All files saved in: {args.output_dir}")
+
+
+if __name__ == "__main__":
+    main()
