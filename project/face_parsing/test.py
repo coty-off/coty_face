@@ -10,8 +10,6 @@ import cv2
 import argparse
 import torch
 
-# Убираем проблемный импорт logger, если он не нужен
-# from logger import setup_logger
 from model import BiSeNet
 
 
@@ -84,7 +82,6 @@ def process_single_image(input_path: str, output_dir: str):
 
         print(f"[FACEPARSING] Unique labels found: {np.unique(parsing)}")
 
-        # Сохраняем результаты
         vis_path = osp.join(output_dir, 'parsing_map_on_im.jpg')
         mask_path = osp.join(output_dir, 'parsing_map.png')
 
@@ -100,8 +97,8 @@ def process_single_image(input_path: str, output_dir: str):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input", required=True, help="Путь к оригинальному фото")
-    parser.add_argument("--output_dir", required=True, help="Куда сохранять результаты")
+    parser.add_argument("--input", required=True)
+    parser.add_argument("--output_dir", required=True)
     args = parser.parse_args()
 
     mask_path = process_single_image(args.input, args.output_dir)
