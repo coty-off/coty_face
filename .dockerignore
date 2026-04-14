@@ -1,0 +1,23 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+env/
+venv/
+.venv/
+.git
+.gitignore
+README.md
+*.md
+
+# Результаты работы
+uploads/
+photos/
+*.jpg
+*.jpeg
+*.png
+*.jfif
+*.gif
+
+# PyTorch кэш
+torch/
