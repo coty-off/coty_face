@@ -1,9 +1,8 @@
-# PyTorch CPU
 --extra-index-url https://download.pytorch.org/whl/cpu
+
 torch==2.2.2+cpu
 torchvision==0.17.2+cpu
 
-# FastAPI + Celery
 fastapi>=0.115.0
 uvicorn[standard]>=0.30.0
 python-multipart>=0.0.9
@@ -11,16 +10,14 @@ celery>=5.4.0
 redis>=5.0.0
 flower>=2.0.0
 
-# БД
 sqlalchemy>=2.0.0
 psycopg2-binary>=2.9.0
 
-# Общие
 python-dotenv>=1.0.0
 httpx>=0.28.0
 pillow>=10.0.0
 opencv-python-headless
 scikit-image>=0.22.0
+scikit-learn>=1.3.0
 
-# Фикс NumPy — ставим в самом конце!
-numpy<2.0
+numpy==1.26.4
