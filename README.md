@@ -1,20 +1,20 @@
-# 🔬 **ColorType Science** - Научный анализ цветотипа (CIE LCh + Michelson)
+#  **ColorType Science** - Научный анализ цветотипа (CIE LCh + Michelson)
 
 [![Docker](https://img.shields.io/badge/Docker-Compose-brightgreen?style=flat&logo=docker)](https://docker.com)
 [![Celery](https://img.shields.io/badge/Celery-v5.6.3-orange?style=flat&logo=celery)](https://celeryproject.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-v0.115-blue?style=flat&logo=fastapi)](https://fastapi.tiangolo.com)
 [![PyTorch](https://img.shields.io/badge/PyTorch-FaceParsing-purple?style=flat&logo=pytorch)](https://pytorch.org)
 
-**✅ Реализовано**: Face Parsing → **CIE LCh колориметрия** → **Michelson контраст** → **45 персональных оттенков**
+** Реализовано**: Face Parsing → **CIE LCh колориметрия** → **Michelson контраст** → **45 персональных оттенков**
 
-## 🎯 **Что делает система**
+##  **Что делает система**
 
 1. **Сегментирует лицо** (BiSeNet): кожа, глаза, брови, волосы
 2. **Анализирует 4 элемента** в CIE LCh: L*/C/h + теплота
 3. **Вычисляет Michelson контраст** + цветотип (взвешенный)
 4. **Генерирует палитру** 9×5=45 оттенков в L* границах пользователя
 
-## 🔬 **НАУЧНЫЕ ОСНОВЫ (Детально)**
+##  **НАУЧНЫЕ ОСНОВЫ (Детально)**
 
 ### **1. CIE L*a*b* → LCh (CIE 1976, ISO 11664-4)**
 
