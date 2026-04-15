@@ -5,6 +5,14 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-v0.115-blue?style=flat&logo=fastapi)](https://fastapi.tiangolo.com)
 [![PyTorch](https://img.shields.io/badge/PyTorch-FaceParsing-purple?style=flat&logo=pytorch)](https://pytorch.org)
 
+Статус всех сервисов
+<img width="1527" height="147" alt="image" src="https://github.com/user-attachments/assets/1f0191c4-14ec-4ea2-ae4a-353eb4a7f8c7" />
+Celery очереди живы
+<img width="1917" height="453" alt="image" src="https://github.com/user-attachments/assets/a4fac967-0007-46d4-b1a4-0056ebe0a51d" />
+FastAPI готов
+<img width="1907" height="853" alt="image" src="https://github.com/user-attachments/assets/08a4c529-e4ac-4652-b81e-efee828cb208" />
+
+
 Система состоит из: Face Parsing → **CIE LCh колориметрия** → **Michelson контраст** → **45 персональных оттенков**
 
 ##  **Что делает система**
