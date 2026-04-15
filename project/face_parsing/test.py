@@ -87,7 +87,7 @@ def process_single_image(input_path: str, output_dir: str):
 
         vis_parsing_maps(image, parsing, stride=1, save_im=True, save_path=vis_path)
 
-        print(f"[FACEPARSING] ✅ Done. Mask: {mask_path}")
+        print(f"[FACEPARSING]  Done. Mask: {mask_path}")
         return mask_path
 
     except Exception as e:
@@ -102,4 +102,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     mask_path = process_single_image(args.input, args.output_dir)
-    print(f"✅ Segment done. Mask saved: {mask_path}")
+    print(f" Segment done. Mask saved: {mask_path}")

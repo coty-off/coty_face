@@ -6,7 +6,7 @@ import numpy as np
 from PIL import Image
 from torchvision import transforms
 
-# ✅ КРИТИЧНО: добавляем текущую папку в PYTHONPATH
+# добавляем текущую папку в PYTHONPATH
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 MODEL_PATH = os.path.join("res", "cp", "79999_iter.pth")
@@ -21,7 +21,7 @@ def get_skin_mask_from_bgr(image_bgr: np.ndarray, device="cpu") -> np.ndarray:
         print(f"[FACEPARSING] Current dir: {os.getcwd()}")
         print(f"[FACEPARSING] Files in dir: {os.listdir('.')}")
         
-        # ✅ Импорт модели
+        #  Импорт модели
         from model import BiSeNet
         print("[FACEPARSING] BiSeNet imported OK")
         
@@ -54,11 +54,11 @@ def get_skin_mask_from_bgr(image_bgr: np.ndarray, device="cpu") -> np.ndarray:
             out = net(img_tensor)[0]
             parsing = out.squeeze(0).cpu().numpy().argmax(0)  # 512×512, 0..18
 
-        # ✅ ДИАГНОСТИКА: какие лейблы найдены?
+        #  какие лейблы найдены?
         unique_labels = np.unique(parsing)
         print(f"[FACEPARSING] Unique labels found: {unique_labels}")
         
-        # Skin labels (может быть не только 1!)
+        # Skin labels - может быть не только 1
         skin_labels = [1, 12, 13]  # skin + возможно другие
         mask_512 = np.isin(parsing, skin_labels)
         skin_pixels_512 = np.sum(mask_512)

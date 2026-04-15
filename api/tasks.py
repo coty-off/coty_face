@@ -5,58 +5,42 @@ import os
 from pathlib import Path
 import traceback
 import time
+import shutil
 
 @app.task(bind=True, queue="segment")
 def process_segment(self, photo_path: str) -> dict:
-    """1-й воркер: сегментация лица"""
     print(f"[SEGMENT] Start: {photo_path}")
 
     try:
         base_name = Path(photo_path).stem
-        output_dir = f"/photos/{base_name}_segment"
-        os.makedirs(output_dir, exist_ok=True)
+        segment_dir = f"/photos/{base_name}_segment"
+        os.makedirs(segment_dir, exist_ok=True)
 
         cmd = [
             "python", "/app/project/face_parsing/test.py",
             "--input", photo_path,
-            "--output_dir", output_dir
+            "--output_dir", segment_dir
         ]
 
         print(f"[SEGMENT] Running: {' '.join(cmd)}")
 
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=180,
-            cwd="/app/project/face_parsing"
-        )
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=180, cwd="/app/project/face_parsing")
 
         if result.returncode != 0:
-            print(f"[SEGMENT] ❌ test.py failed:\n{result.stderr}")
             raise RuntimeError(result.stderr)
 
-        # === ИСПРАВЛЕНИЕ: используем реальные имена файлов ===
-        vis_path = f"{output_dir}/parsing_map_on_im.jpg"
-        mask_path = f"{output_dir}/parsing_map_on_im.png"   # ← вот это главное изменение
+        index_mask_path = f"{segment_dir}/parsing_map_on_im.png"
 
-        if not os.path.exists(mask_path):
-            # Дополнительная проверка на случай других имён
-            print(f"[SEGMENT] Warning: Expected mask {mask_path} not found. Checking files...")
-            files = os.listdir(output_dir)
-            print(f"[SEGMENT] Files in output_dir: {files}")
-            raise FileNotFoundError(f"Mask not created. Expected: {mask_path}")
+        if not os.path.exists(index_mask_path):
+            raise FileNotFoundError(f"Index mask not found: {index_mask_path}")
 
-        print(f"[SEGMENT] ✅ Mask created successfully: {mask_path} ({os.path.getsize(mask_path)} bytes)")
-        print(f"[SEGMENT] Visualization: {vis_path}")
+        print(f"[SEGMENT]  Index mask: {index_mask_path} ({os.path.getsize(index_mask_path)} bytes)")
 
-        # Запускаем второй воркер
-        color_task = process_colors.delay(mask_path, photo_path)
+        color_task = process_colors.delay(photo_path, index_mask_path)
 
         return {
             "status": "segment_done",
-            "mask_path": mask_path,
-            "vis_path": vis_path,
+            "mask_path": index_mask_path,
             "original_path": photo_path,
             "color_task_id": str(color_task.id)
         }
@@ -68,43 +52,52 @@ def process_segment(self, photo_path: str) -> dict:
 
 
 @app.task(bind=True, queue="colors")
-def process_colors(self, mask_path: str, original_path: str) -> dict:
-    """2-й воркер: цветовой анализ"""
-    print(f"[COTY] === COLOR ANALYSIS STARTED ===")
-    print(f"[COTY] Mask: {mask_path}")
-    print(f"[COTY] Original: {original_path}")
+def process_colors(self, original_path: str, index_mask_path: str) -> dict:
+    print(f"[COTY] === START ===")
+    print(f"[COTY] Original   : {original_path}")
+    print(f"[COTY] Index mask : {index_mask_path}")
 
     try:
-        if not os.path.exists(mask_path):
-            raise FileNotFoundError(f"Mask file not found: {mask_path}")
-
-        print(f"[COTY] Mask size: {os.path.getsize(mask_path)} bytes")
+        if not os.path.exists(index_mask_path):
+            raise FileNotFoundError(f"Index mask not found: {index_mask_path}")
 
         base_name = Path(original_path).stem
         output_dir = f"/uploads/{base_name}_coty"
         os.makedirs(output_dir, exist_ok=True)
 
+        final_index_path = os.path.join(output_dir, "parsing_map_on_im.png")
+        shutil.copy2(index_mask_path, final_index_path)
+        print(f"[COTY]  Index mask copied to {final_index_path}")
+
         cmd = [
             "python", "/app/coty/main.py",
             "--original", original_path,
-            "--mask", mask_path,
+            "--mask", final_index_path,
             "--output_dir", output_dir
         ]
 
-        print(f"[COTY] Running: {' '.join(cmd)}")
+        print(f"[COTY] Running main.py with timeout 300s...")
         start_time = time.time()
 
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=300, cwd="/app/coty")
+        result = subprocess.run(
+            cmd, 
+            capture_output=True, 
+            text=True, 
+            timeout=300, 
+            cwd="/app/coty"
+        )
 
         duration = time.time() - start_time
 
-        if result.returncode != 0:
-            print(f"[COTY] ❌ Failed with code {result.returncode}")
-            print(f"[COTY] STDERR:\n{result.stderr}")
-            raise RuntimeError(result.stderr)
+        print(f"[COTY] main.py return code: {result.returncode}")
+        print(f"[COTY] Duration: {duration:.1f}s")
 
-        print(f"[COTY] ✅ Successfully finished in {duration:.1f} seconds")
-        print(f"[COTY] Results saved to: {output_dir}")
+        if result.returncode != 0:
+            print(f"[COTY] STDERR:\n{result.stderr}")
+            raise RuntimeError(f"main.py failed: {result.stderr}")
+
+        print(f"[COTY] STDOUT:\n{result.stdout}")
+        print(f"[COTY]  SUCCESS! Results in: {output_dir}")
 
         return {
             "status": "complete",
@@ -112,7 +105,8 @@ def process_colors(self, mask_path: str, original_path: str) -> dict:
             "files": {
                 "visual": f"{output_dir}/{base_name}_smart_analysis_visual.png",
                 "legend": f"{output_dir}/{base_name}_smart_legend.png",
-                "palette_html": f"{output_dir}/{base_name}_personal_palette.html"
+                "palette_html": f"{output_dir}/{base_name}_personal_palette.html",
+                "index_mask": final_index_path
             }
         }
 
