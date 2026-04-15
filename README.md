@@ -69,6 +69,18 @@ M ≥ 0.50 → Высокая → L*raw=
 
 <img width=50% height=50% alt="2ffba59e-e9cc-4941-ac80-4d7990e7352a_men_smart_analysis_visual" src="https://github.com/user-attachments/assets/e3f15204-792d-44fa-afd0-4b3af6c2b64d" />
 
+Индексная маска:
+
+
+<img width="512" height="512" alt="parsing_map_on_im" src="https://github.com/user-attachments/assets/7e025c41-56ef-46ae-a298-a13e5b3fd982" />
+
+
+
+Маска с раскрашенными сементами поверх фото:
+
+
+<img width="512" height="512" alt="parsing_map_on_im" src="https://github.com/user-attachments/assets/04ecd023-f01c-42b0-be2d-6ae6a878dd5e" />
+
 
 Легенда оттенков внешности пользователя:
 
