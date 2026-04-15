@@ -1,4 +1,4 @@
-#  **ColorType Science** - Научный анализ цветотипа (CIE LCh + Michelson)
+#  **COTY** - Научный анализ цветотипа (CIE LCh + Michelson)
 
 [![Docker](https://img.shields.io/badge/Docker-Compose-brightgreen?style=flat&logo=docker)](https://docker.com)
 [![Celery](https://img.shields.io/badge/Celery-v5.6.3-orange?style=flat&logo=celery)](https://celeryproject.org)
