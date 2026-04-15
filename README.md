@@ -5,7 +5,7 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-v0.115-blue?style=flat&logo=fastapi)](https://fastapi.tiangolo.com)
 [![PyTorch](https://img.shields.io/badge/PyTorch-FaceParsing-purple?style=flat&logo=pytorch)](https://pytorch.org)
 
-** Реализовано**: Face Parsing → **CIE LCh колориметрия** → **Michelson контраст** → **45 персональных оттенков**
+Система состоит из: Face Parsing → **CIE LCh колориметрия** → **Michelson контраст** → **45 персональных оттенков**
 
 ##  **Что делает система**
 
@@ -26,8 +26,10 @@ h = atan2(b*,a*) - hue (оттенок, 0-360°)
 - **Hue-анализ теплоты** по колориметрическим диапазонам
 - **Стандарт**: Международная комиссия по освещению CIE
 
-**Диапазоны теплоты** :
 
+### **2. Контрастность Michelson **
+M = (L_max - L_min) / (L_max + L_min) ∈ [0;1]
+M < 0.30 → Низкая → L*raw= 0.30≤M<0.50 → Средняя → L*raw= M ≥ 0.50 → Высокая → L*raw=
 
 Фото с раскрашенными сегментами для анализа:
 
