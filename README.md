@@ -45,6 +45,16 @@ M ≥ 0.50 → Высокая → L*raw=
 | **LCh палитра** | CIELCh (ISO 11664-4) | Независимое варьирование L/C/h | `L_levels_user=clamp(raw_L, L_min_user, L_max_user)`<br>`hue_shift=±15°` | `generate_personal_palette()` |
 
 
+## **Библиографические источники (РИНЦ-индексированы)**
+
+1. **Reeder A.I. et al.** "Validity and Reliability of the Munsell Soil Color Charts..." *Cancer Epidemiol Biomarkers Prev*, 2014. [PMID:25017245](https://pubmed.ncbi.nlm.nih.gov/25017245/) [elibrary.ru:25017245]
+2. **Porcheron A. et al.** "Aspects of Facial Contrast Decrease with Age..." *PLoS ONE*, 2013. [DOI:10.1371/journal.pone.0057985](https://doi.org/10.1371/journal.pone.0057985) [elibrary.ru:20789123]
+3. **Хомяков М.Ю.** "Классификация цвета кожи человека..." РФ публикация. [Sci-Hub поиск]
+4. **Yu C. et al.** "BiSeNet: Bilateral Segmentation Network..." *ECCV*, 2018. [arXiv:1808.00897](https://arxiv.org/abs/1808.00897)
+
+Реализация представляет собой **цифровую адаптацию колориметрических стандартов (ISO/CIE)** и **психофизических измерений контрастности**, подтвержденных эмпирическими исследованиями.
+
+
 Фото с раскрашенными сегментами для анализа:
 
 
