@@ -12,6 +12,14 @@ Celery очереди живы
 FastAPI готов
 <img width="1907" height="853" alt="image" src="https://github.com/user-attachments/assets/08a4c529-e4ac-4652-b81e-efee828cb208" />
 
+Авторизация успешно работает:
+
+
+<img width="1876" height="917" alt="image" src="https://github.com/user-attachments/assets/8caab3ba-a4dd-4efa-ba3c-54e120748579" />
+
+
+<img width="1789" height="758" alt="image" src="https://github.com/user-attachments/assets/9b31f7fa-1c33-4ed3-ae8d-9fa063d8f55f" />
+
 
 Система состоит из: Face Parsing → **CIE LCh колориметрия** → **Michelson контраст** → **45 персональных оттенков**
 
