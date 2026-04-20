@@ -3,6 +3,24 @@ services:
     image: redis:7-alpine
     ports:
       - "6379:6379"
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 1234
+      POSTGRES_DB: diplom_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   web:
     build: .
@@ -12,12 +30,20 @@ services:
       - ./uploads:/uploads
       - ./photos:/photos
     depends_on:
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
     environment:
-      CELERY_BROKER_URL: redis://redis:6379/0
-      CELERY_RESULT_BACKEND: redis://redis:6379/1
-      PYTHONPATH: /app:/app/project:/app/coty
+      - DATABASE_URL=postgresql://postgres:1234@postgres:5432/diplom_db
+      - SECRET_KEY=super-secret-key-change-in-production-2026
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - PYTHONPATH=/app:/app/project:/app/coty
+      - YANDEX_CLIENT_ID=твой_yandex_client_id
+      - YANDEX_CLIENT_SECRET=твой_yandex_client_secret
     command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+    restart: unless-stopped
 
   worker-segment:
     build: .
@@ -27,10 +53,12 @@ services:
       - ./photos:/photos
     depends_on:
       - redis
+      - postgres
     environment:
-      CELERY_BROKER_URL: redis://redis:6379/0
-      CELERY_RESULT_BACKEND: redis://redis:6379/1
-      PYTHONPATH: /app:/app/project:/app/coty
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - PYTHONPATH=/app:/app/project:/app/coty
+    restart: unless-stopped
 
   worker-colors:
     build: .
@@ -40,10 +68,12 @@ services:
       - ./photos:/photos
     depends_on:
       - redis
+      - postgres
     environment:
-      CELERY_BROKER_URL: redis://redis:6379/0
-      CELERY_RESULT_BACKEND: redis://redis:6379/1
-      PYTHONPATH: /app:/app/project:/app/coty
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - PYTHONPATH=/app:/app/project:/app/coty
+    restart: unless-stopped
 
   flower:
     build: .
@@ -53,8 +83,10 @@ services:
     depends_on:
       - redis
     environment:
-      CELERY_BROKER_URL: redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+    restart: unless-stopped
 
 volumes:
-  photos:
+  postgres_data:
   uploads:
+  photos:
