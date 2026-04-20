@@ -1,4 +1,4 @@
-#  **ColorType Science** - Научный анализ цветотипа (CIE LCh + Michelson)
+#  **COTY** - Научный анализ цветотипа (CIE LCh + Michelson)
 
 [![Docker](https://img.shields.io/badge/Docker-Compose-brightgreen?style=flat&logo=docker)](https://docker.com)
 [![Celery](https://img.shields.io/badge/Celery-v5.6.3-orange?style=flat&logo=celery)](https://celeryproject.org)
@@ -11,6 +11,14 @@ Celery очереди живы
 <img width="1917" height="453" alt="image" src="https://github.com/user-attachments/assets/a4fac967-0007-46d4-b1a4-0056ebe0a51d" />
 FastAPI готов
 <img width="1907" height="853" alt="image" src="https://github.com/user-attachments/assets/08a4c529-e4ac-4652-b81e-efee828cb208" />
+
+Авторизация успешно работает:
+
+
+<img width="1876" height="917" alt="image" src="https://github.com/user-attachments/assets/8caab3ba-a4dd-4efa-ba3c-54e120748579" />
+
+
+<img width="1789" height="758" alt="image" src="https://github.com/user-attachments/assets/9b31f7fa-1c33-4ed3-ae8d-9fa063d8f55f" />
 
 
 Система состоит из: Face Parsing → **CIE LCh колориметрия** → **Michelson контраст** → **45 персональных оттенков**
@@ -30,7 +38,7 @@ C = √(a²+b²) - хрома - насыщенность
 h = atan2(b*,a*) - hue (оттенок, 0-360°)
 
 **Преимущества LCh**:
-- **Перцептивно равномерная** ΔE равномерны
+- **Перцептивно равномерная** ΔE равномерны - числа лучше совпадали с тем, как человек видит разницу цветов
 - **Hue-анализ теплоты** по колориметрическим диапазонам
 - **Стандарт**: Международная комиссия по освещению CIE
 
