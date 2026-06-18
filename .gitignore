@@ -7,3 +7,9 @@ project/venv/
 venv/
 project/venv/
 coty-frontend/ 
+"__pycache__/" 
+"*.pyc" 
+".env" 
+"uploads/" 
+"photos/" 
+"node_modules/" 

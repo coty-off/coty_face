@@ -25,3 +25,9 @@ python-jose[cryptography]>=3.3.0
 bcrypt==4.1.2
 
 numpy==1.26.4
+
+email-validator>=2.0.0        # ← ДОБАВЛЕНО
+python-dotenv>=1.0.0          # ← ДОБАВЛЕНО: для загрузки .env файла с секретами
+slowapi>=0.1.9                # ← ДОБАВЛЕНО: защита от брутфорса (rate limiting)
+python-magic>=0.4.27          # ← ДОБАВЛЕНО: проверка реального MIME-типа файлов
+cryptography>=41.0.0          # ← ДОБАВЛЕНО: для шифрования данных

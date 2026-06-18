@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libsm6 \
     libxext6 \
     libxrender-dev \
+    libmagic1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Фиксируем NumPy
@@ -23,6 +24,7 @@ COPY coty/ ./coty/
 COPY project/face_parsing/ ./project/face_parsing/
 
 RUN mkdir -p /uploads /photos
+RUN pip install email-validator
 
 EXPOSE 8000
 
